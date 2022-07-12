@@ -10,8 +10,20 @@ const Part = (props) => {
 }
 
 const Footer = (props) => {
-  return <p>Number of exercises {props.exercises}</p>
+  let totalExercises = 0;
+  props.parts.forEach(p => totalExercises += p.exercises)
+  return <p>Number of exercises {totalExercises}</p>
 }
+
+const Content = (props) => {
+  return (
+    <>
+      <Part part={props.parts[0]} />
+      <Part part={props.parts[1]} />
+      <Part part={props.parts[2]} />
+    </>
+  );
+};
 
 const App = () => {
   const course = "Half Stack application development";
@@ -30,10 +42,8 @@ const App = () => {
   return (
     <div>
       <Header course={course} />
-      <Part part={parts[0]} />
-      <Part part={parts[1]} />
-      <Part part={parts[2]} />
-      <Footer exercises={parts[0].exercises + parts[1].exercises + parts[2].exercises}/>
+      <Content parts={parts} />
+      <Footer parts={parts} />
     </div>
   );
 };
