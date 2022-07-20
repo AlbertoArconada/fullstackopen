@@ -1,8 +1,8 @@
-import axios from 'axios'
 import React, { useState, useEffect } from 'react'
 import Filter from './components/Filter'
 import PersonForm from './components/PersonForm'
 import Persons from './components/Persons'
+import phonebookService from './services/phonebook'
 
 const App = () => {
   const [ persons, setPersons ] = useState([]) 
@@ -12,17 +12,30 @@ const App = () => {
   const filteredPersons = filter === '' ? persons : persons.filter(person => person.name.toLowerCase().indexOf(filter.toLowerCase()) !== -1)
   const addPerson = (event) => {
     event.preventDefault()
-    if(persons.filter(person => person.name === newName).length > 0) {
-      alert(`${newName} is already added to the phonebook`)
+    const existingPerson = persons.find(person => person.name === newName);
+    if(existingPerson) {
+      if(window.confirm(`${newName} is already added to the phonebook, replace the old number with a new one?`)) {
+        const updatedPerson = {...existingPerson, number: newNumber}
+        phonebookService
+          .updatePerson(updatedPerson.id, updatedPerson)
+          .then(modifiedPerson => {
+            setPersons(persons.map(person => person.id === modifiedPerson.id ? modifiedPerson : person))
+          })
+      }
       return
     }
     const newPerson = {
       name: newName,
       number: newNumber
     }
-    setPersons(persons.concat(newPerson))
-    setNewName('')
-    setNewNumber('')
+    phonebookService
+      .create(newPerson)
+      .then(createdPerson => {
+        setPersons(persons.concat(createdPerson))
+        setNewName('')
+        setNewNumber('')
+      })
+ 
   }
   const handleNewNameChange = (event) => {
     setNewName(event.target.value)
@@ -33,12 +46,25 @@ const App = () => {
   const handleFilterChange = (event) => {
     setFilter(event.target.value)
   }
+  const handleDeleteNumber = (id) => {
+    const personToDelete = persons.find(person => person.id === id)
+    if(window.confirm(`Are you sure you want to delete ${personToDelete.name}`)) {
+      console.log(`Person with id ${id} must be deleted`)
+      phonebookService
+        .deletePerson(id)
+        .then(deletedPerson => {
+          console.log(deletedPerson)
+          setPersons(persons.filter(person => person.id !== id))
+        })
+    }
+
+  }
 
   const hook = () => {
-    axios
-      .get('http://localhost:3001/persons')
-      .then(response => {
-        setPersons(response.data)
+    phonebookService
+      .getAll()
+      .then(initialPersons => {
+        setPersons(initialPersons)
       })
   }
 
@@ -56,7 +82,7 @@ const App = () => {
       handleNewNumberChange={handleNewNumberChange}
       newNumber={newNumber} />
       <h2>Numbers</h2>
-      <Persons persons={filteredPersons}/>
+      <Persons persons={filteredPersons} deleteHandler={handleDeleteNumber}/>
     </div>
   )
 }
